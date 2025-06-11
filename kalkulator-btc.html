@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Dollar Cost Averaging Kripto (Multi-Aset DCA)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/jspdf-autotable@3.5.23/dist/jspdf.plugin.autotable.js"></script>
+
+    <!-- Custom Styles -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #B8CFCE; /* New Background */
+            color: #333446; /* New Main Text Color */
+        }
+        .metric-card {
+            background-color: #EAEFEF;
+            border: 1px solid #7f8caa;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+        }
+        .profit { color: #16a34a; } /* Darker green for light background */
+        .loss { color: #dc2626; } /* Darker red for light background */
+        .asset-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #7f8caa;
+            transition: background-color 0.2s, color 0.2s;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: #EAEFEF;
+            color: #333446;
+        }
+        .asset-btn.active {
+            background-color: #7f8caa;
+            border-color: #7f8caa;
+            color: #EAEFEF;
+        }
+        .delete-asset-btn:hover {
+            background-color: rgba(51, 52, 70, 0.2);
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+
+        <!-- Welcome Screen -->
+        <div id="welcome-screen" class="max-w-xl mx-auto text-center bg-[#EAEFEF] border border-[#7f8caa] p-8 rounded-xl shadow-lg">
+            <h1 class="text-3xl font-bold mb-2 text-[#333446]">Selamat Datang!</h1>
+            <p class="text-[#333446] mb-6">Untuk memulai, masukkan nama dan aset pertama Anda.</p>
+            <div class="space-y-4">
+                 <div>
+                    <label for="initial-user-name" class="block text-sm font-medium text-left text-[#333446] mb-2">Nama Anda</label>
+                    <input type="text" id="initial-user-name" placeholder="Masukkan nama Anda..." class="w-full bg-white text-[#333446] rounded-lg border border-[#7f8caa] focus:ring-[#7f8caa] focus:border-[#7f8caa] py-2.5 px-4">
+                </div>
+                 <div>
+                    <label for="initial-asset-name" class="block text-sm font-medium text-left text-[#333446] mb-2">Nama Aset Pertama</label>
+                    <input type="text" id="initial-asset-name" value="BTC" placeholder="Contoh: BTC, ETH" class="w-full bg-white text-[#333446] rounded-lg border border-[#7f8caa] focus:ring-[#7f8caa] focus:border-[#7f8caa] py-2.5 px-4">
+                </div>
+                 <div>
+                    <label class="block text-sm font-medium text-left text-[#333446] mb-2">Pilih Mata Uang Utama</label>
+                    <select id="initial-currency" class="w-full bg-white text-[#333446] rounded-lg border border-[#7f8caa] focus:ring-[#7f8caa] focus:border-[#7f8caa] py-2.5 px-4">
+                        <option value="IDR">Rupiah (IDR)</option>
+                        <option value="USD">Dolar AS (USD)</option>
+                    </select>
+                </div>
+                <button id="start-btn" class="w-full bg-[#7f8caa] hover:bg-opacity-90 text-white font-bold py-3 px-4 rounded-lg transition duration-200">Gunakan</button>
+            </div>
+        </div>
+
+        <!-- Main Calculator Interface -->
+        <div id="main-calculator" class="hidden">
+            <header class="text-center mb-10">
+                <h1 class="text-3xl md:text-5xl font-extrabold mb-3 text-[#333446]">
+                    Kalkulator Dollar Cost Averaging Kripto
+                </h1>
+                <p class="text-md md:text-lg text-[#333446] max-w-2xl mx-auto">
+                   Halo, <span id="display-name" class="font-semibold text-[#333446]">Investor</span>! Lacak dan bandingkan performa aset kripto Anda.
+                </p>
+            </header>
+
+            <!-- Asset Management -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-[#333446] mb-2">Aset Anda</label>
+                <div class="flex flex-wrap gap-2 items-center" id="asset-tabs-container">
+                    <!-- Asset tabs will be rendered here -->
+                </div>
+                <div class="flex gap-2 mt-4">
+                    <input type="text" id="new-asset-name" placeholder="Nama aset baru..." class="w-full bg-[#EAEFEF] text-[#333446] rounded-lg border border-[#7f8caa] focus:ring-[#7f8caa] focus:border-[#7f8caa] py-2.5 px-4">
+                    <button id="add-asset-btn" class="bg-[#7f8caa] hover:bg-opacity-90 text-white font-bold py-2 px-4 rounded-lg whitespace-nowrap">Tambah Aset</button>
+                </div>
+            </div>
+
+            <div id="asset-details-container">
+                <!-- Asset-specific sections will be rendered here -->
+            </div>
+            
+            <div class="mt-8 flex justify-end">
+                <button id="download-pdf-btn" class="bg-[#7f8caa] hover:bg-opacity-90 text-white font-bold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                       <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Unduh Laporan Strategi DCA</span>
+                </button>
+            </div>
+            
+            <!-- FOOTER - CONTAINER REMOVED -->
+            <footer class="text-center mt-16 pt-8 border-t border-[#7f8caa]">
+                <p class="text-sm text-[#333446] leading-relaxed max-w-xl mx-auto">
+                    <strong>Penafian:</strong> Kalkulator ini digunakan untuk menilai strategi Dollar Cost Averaging. Investasi aset kripto memiliki risiko tinggi.
+                    Lakukan riset Anda sendiri (DYOR)!
+                </p>
+                <a href="https://t.me/edwardd_cm" target="_blank" rel="noopener noreferrer" class="text-sm text-[#333446] mt-4 inline-block hover:underline font-semibold">
+                    Dibuat oleh Edward C. Mangedong
+                </a>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // --- STATE MANAGEMENT ---
+        let portfolio = {};
+        let selectedAsset = '';
+        let userName = 'Investor';
+
+        // --- DOM ELEMENTS ---
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const mainCalculator = document.getElementById('main-calculator');
+        const startBtn = document.getElementById('start-btn');
+        const initialAssetNameInput = document.getElementById('initial-asset-name');
+        const initialCurrencySelect = document.getElementById('initial-currency');
+        const initialUserNameInput = document.getElementById('initial-user-name');
+        const assetTabsContainer = document.getElementById('asset-tabs-container');
+        const newAssetNameInput = document.getElementById('new-asset-name');
+        const addAssetBtn = document.getElementById('add-asset-btn');
+        const assetDetailsContainer = document.getElementById('asset-details-container');
+        const downloadPdfBtn = document.getElementById('download-pdf-btn');
+        const displayName = document.getElementById('display-name');
+
+
+        // --- FORMATTING & PARSING ---
+        const formatters = {
+            'IDR': (num) => `Rp ${num.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`,
+            'USD': (num) => `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        };
+        
+        function getCleanNumber(value, currency) {
+            if (!value) return '';
+            const separator = currency === 'IDR' ? '.' : ',';
+            const regex = new RegExp(`\\${separator}`, 'g');
+            return value.replace(regex, '');
+        }
+
+        function formatInputValue(input, currency) {
+            let value = input.value;
+            let cleanValue = value.replace(currency === 'IDR' ? /[^\d]/g : /[^0-9.]/g, '');
+            
+            if (cleanValue === '') {
+                input.value = '';
+                return;
+            }
+            
+            const num = parseFloat(cleanValue);
+            if (isNaN(num)) {
+                input.value = '';
+                return;
+            }
+            input.value = num.toLocaleString(currency === 'IDR' ? 'id-ID' : 'en-US', {
+                 maximumFractionDigits: currency === 'USD' ? 20 : 0 
+            });
+        }
+
+        // --- RENDERING FUNCTIONS ---
+        function renderAll() {
+            renderAssetTabs();
+            Object.keys(portfolio).forEach(assetName => {
+                const section = document.getElementById(`asset-section-${assetName}`);
+                if (section) {
+                    renderSummary(assetName);
+                    renderHistory(assetName);
+                    section.classList.toggle('hidden', assetName !== selectedAsset);
+                }
+            });
+        }
+        
+        function renderAssetTabs() {
+            assetTabsContainer.innerHTML = '';
+            const assetNames = Object.keys(portfolio);
+            assetNames.forEach(name => {
+                const isActive = name === selectedAsset;
+                const tab = document.createElement('button');
+                tab.className = `asset-btn ${isActive ? 'active' : ''}`;
+                tab.dataset.asset = name;
+                tab.innerHTML = `
+                    <span>${name}</span>
+                    ${assetNames.length > 1 ? `<button class="delete-asset-btn" data-asset-delete="${name}">
+                        <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>` : ''}
+                `;
+                assetTabsContainer.appendChild(tab);
+            });
+        }
+
+        function renderSummary(assetName) {
+            const assetData = portfolio[assetName];
+            const format = formatters[assetData.currency];
+            const purchases = assetData.purchases;
+
+            const totalInvested = purchases.reduce((sum, p) => sum + p.investment, 0);
+            const totalAmount = purchases.reduce((sum, p) => sum + p.amountBought, 0);
+            const averagePrice = totalAmount > 0 ? totalInvested / totalAmount : 0;
+            const latestPrice = purchases.length > 0 ? purchases[purchases.length - 1].price : 0;
+            const portfolioValue = totalAmount * latestPrice;
+            const pnl = portfolioValue - totalInvested;
+            const pnlPercentage = totalInvested > 0 ? (pnl / totalInvested) * 100 : 0;
+            
+            document.getElementById(`summary-total-invested-${assetName}`).textContent = format(totalInvested);
+            document.getElementById(`summary-avg-price-${assetName}`).textContent = format(averagePrice);
+            document.getElementById(`summary-total-amount-${assetName}`).textContent = `${totalAmount.toFixed(8)} ${assetName}`;
+            document.getElementById(`summary-value-${assetName}`).textContent = format(portfolioValue);
+            
+            const pnlEl = document.getElementById(`summary-pnl-${assetName}`);
+            pnlEl.textContent = `${format(pnl)} (${pnlPercentage.toFixed(2)}%)`;
+            pnlEl.classList.remove('profit', 'loss');
+            if (pnl > 0) pnlEl.classList.add('profit');
+            else if (pnl < 0) pnlEl.classList.add('loss');
+        }
+
+        function renderHistory(assetName) {
+            const assetData = portfolio[assetName];
+            const tbody = document.getElementById(`history-body-${assetName}`);
+            const format = formatters[assetData.currency];
+            tbody.innerHTML = '';
+
+            if (assetData.purchases.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 px-6 text-[#7f8caa]">Belum ada data pembelian.</td></tr>`;
+                return;
+            }
+
+            assetData.purchases.forEach(p => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-[#7f8caa]';
+                row.innerHTML = `
+                    <td class="px-6 py-4">${p.period}</td>
+                    <td class="px-6 py-4">${format(p.investment)}</td>
+                    <td class="px-6 py-4">${format(p.price)}</td>
+                    <td class="px-6 py-4">${p.amountBought.toFixed(8)}</td>
+                    <td class="px-6 py-4 text-right">
+                        <button data-id="${p.id}" class="delete-purchase-btn text-[#7f8caa] hover:text-[#333446]">
+                           <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function createAssetSection(assetName, currency) {
+            const section = document.createElement('div');
+            section.id = `asset-section-${assetName}`;
+            section.innerHTML = `
+                <main class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
+                    <div class="lg:col-span-2">
+                        <div class="bg-[#EAEFEF] border border-[#7f8caa] p-6 rounded-xl shadow-lg mb-8">
+                             <form data-asset-form="${assetName}" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-[#333446] mb-2">Jumlah Investasi (${currency})</label>
+                                    <input type="text" inputmode="numeric" data-input="investment" placeholder="Masukkan jumlah..." class="w-full bg-white border border-[#7f8caa] text-[#333446] rounded-lg py-2.5 px-4">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-[#333446] mb-2">Harga Beli ${assetName} (${currency})</label>
+                                    <input type="text" inputmode="numeric" data-input="price" placeholder="Masukkan harga..." class="w-full bg-white border border-[#7f8caa] text-[#333446] rounded-lg py-2.5 px-4">
+                                </div>
+                                <div class="flex gap-4">
+                                    <button type="submit" class="w-full bg-[#7f8caa] hover:bg-opacity-90 text-white font-bold py-3 px-4 rounded-lg">Tambah Pembelian</button>
+                                    <button type="button" data-reset-asset="${assetName}" class="w-full bg-transparent border border-[#7f8caa] hover:bg-[#7f8caa] hover:text-white text-[#333446] font-bold py-3 px-4 rounded-lg">Reset Aset Ini</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="bg-[#EAEFEF] border border-[#7f8caa] rounded-xl shadow-lg">
+                            <h3 class="text-xl font-bold p-6 border-b border-[#7f8caa]">Riwayat Pembelian: ${assetName}</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="text-xs text-[#333446] uppercase">
+                                        <tr>
+                                            <th class="px-6 py-3">Periode</th>
+                                            <th class="px-6 py-3">Investasi</th>
+                                            <th class="px-6 py-3">Harga Beli</th>
+                                            <th class="px-6 py-3">Jumlah ${assetName} Dibeli</th>
+                                            <th class="px-6 py-3 text-right">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="history-body-${assetName}"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-1">
+                        <div class="sticky top-8">
+                            <h3 class="text-xl font-bold mb-4">Ringkasan: ${assetName}</h3>
+                            <div class="space-y-4">
+                                <div class="metric-card"><h4 class="text-sm font-medium text-[#333446]">Total Investasi</h4><p id="summary-total-invested-${assetName}" class="text-2xl font-bold"></p></div>
+                                <div class="metric-card"><h4 class="text-sm font-medium text-[#333446]">Harga Beli Rata-rata</h4><p id="summary-avg-price-${assetName}" class="text-2xl font-bold"></p></div>
+                                <div class="metric-card"><h4 class="text-sm font-medium text-[#333446]">Total ${assetName} Terkumpul</h4><p id="summary-total-amount-${assetName}" class="text-2xl font-bold"></p></div>
+                                <div class="metric-card"><h4 class="text-sm font-medium text-[#333446]">Nilai Investasi</h4><p id="summary-value-${assetName}" class="text-2xl font-bold"></p></div>
+                                <div class="metric-card"><h4 class="text-sm font-medium text-[#333446]">Untung/Rugi</h4><p id="summary-pnl-${assetName}" class="text-2xl font-bold"></p></div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            `;
+            assetDetailsContainer.appendChild(section);
+        }
+
+        // --- EVENT HANDLERS ---
+        function handleStart() {
+            const assetName = initialAssetNameInput.value.trim().toUpperCase();
+            const currency = initialCurrencySelect.value;
+            userName = initialUserNameInput.value.trim() || 'Investor';
+
+            if (!assetName) {
+                alert("Nama aset tidak boleh kosong.");
+                return;
+            }
+            
+            displayName.textContent = userName;
+            addAsset(assetName, currency);
+            welcomeScreen.classList.add('hidden');
+            mainCalculator.classList.remove('hidden');
+        }
+
+        function addAsset(assetName, currency) {
+            if (portfolio[assetName]) {
+                alert(`Aset "${assetName}" sudah ada.`);
+                return;
+            }
+            portfolio[assetName] = { currency, purchases: [] };
+            selectedAsset = assetName;
+            createAssetSection(assetName, currency);
+            renderAll();
+        }
+
+        function handleAddPurchase(e) {
+            e.preventDefault();
+            const assetName = e.target.dataset.assetForm;
+            const assetData = portfolio[assetName];
+            const form = e.target;
+            const investmentInput = form.querySelector('[data-input="investment"]');
+            const priceInput = form.querySelector('[data-input="price"]');
+            
+            const investment = parseFloat(getCleanNumber(investmentInput.value, assetData.currency));
+            const price = parseFloat(getCleanNumber(priceInput.value, assetData.currency));
+
+            if (isNaN(investment) || isNaN(price) || investment <= 0 || price <= 0) {
+                alert("Harap masukkan angka yang valid dan lebih dari nol.");
+                return;
+            }
+
+            const newPurchase = {
+                id: Date.now(),
+                period: assetData.purchases.length + 1,
+                investment,
+                price,
+                amountBought: investment / price,
+            };
+            assetData.purchases.push(newPurchase);
+            investmentInput.value = '';
+            priceInput.value = '';
+            renderAll();
+        }
+
+        function handleDeleteAsset(assetName) {
+             if (Object.keys(portfolio).length <= 1) {
+                alert("Tidak bisa menghapus aset terakhir.");
+                return;
+            }
+            if (confirm(`Apakah Anda yakin ingin menghapus aset "${assetName}" beserta seluruh riwayatnya?`)) {
+                delete portfolio[assetName];
+                document.getElementById(`asset-section-${assetName}`).remove();
+                selectedAsset = Object.keys(portfolio)[0];
+                renderAll();
+            }
+        }
+        
+        function handleResetAsset(assetName) {
+            if (confirm(`Apakah Anda yakin ingin mereset semua riwayat pembelian untuk aset "${assetName}"?`)) {
+                portfolio[assetName].purchases = [];
+                renderAll();
+            }
+        }
+        
+        async function handleDownloadPDF() {
+            if (Object.keys(portfolio).length === 0 || Object.values(portfolio).every(a => a.purchases.length === 0)) {
+                alert("Tidak ada data untuk diunduh. Silakan tambahkan riwayat pembelian terlebih dahulu.");
+                return;
+            }
+            
+            downloadPdfBtn.disabled = true;
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const pageUserName = userName || 'Investor';
+            
+            let yPos = 20;
+            const leftMargin = 15;
+            const writeText = (text, options, y) => {
+                doc.setFontSize(options.fontSize || 11);
+                doc.setFont('helvetica', options.fontStyle || 'normal');
+                doc.setTextColor(options.color || '#000000');
+                doc.text(text, leftMargin, y);
+                return y + (options.lineHeight || 7);
+            };
+
+            // --- PDF Header ---
+            yPos = writeText(`Halo, ${pageUserName}!`, { fontSize: 12, fontStyle: 'bold' }, yPos);
+            yPos = writeText("Terima kasih telah menggunakan Kinawa Calculator.", {}, yPos);
+            yPos = writeText("Berikut adalah hasil dari strategi Dollar Cost Averaging yang kamu lakukan.", {}, yPos + 2);
+            yPos += 10;
+
+            // --- Loop through each asset ---
+            for (const assetName of Object.keys(portfolio)) {
+                const assetData = portfolio[assetName];
+                const purchases = assetData.purchases;
+
+                if (purchases.length === 0) continue; 
+                
+                if (yPos > doc.internal.pageSize.getHeight() - 80) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+
+                // --- History Table ---
+                yPos = writeText(`RIWAYAT PEMBELIAN: ${assetName}`, { fontSize: 13, fontStyle: 'bold' }, yPos);
+                yPos += 2;
+                
+                const format = formatters[assetData.currency];
+                const historyHead = [['Periode', `Investasi`, `Harga Beli`, `Jumlah ${assetName} Dibeli`]];
+                const historyBody = purchases.map(p => [
+                    p.period,
+                    format(p.investment),
+                    format(p.price),
+                    p.amountBought.toFixed(8)
+                ]);
+
+                doc.autoTable({
+                    startY: yPos,
+                    head: historyHead,
+                    body: historyBody,
+                    theme: 'grid',
+                    headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255], font: 'helvetica' },
+                    bodyStyles: { font: 'courier', fontSize: 12 },
+                    styles: { cellPadding: 2, fontSize: 9 },
+                });
+                yPos = doc.autoTable.previous.finalY + 10;
+                
+                if (yPos > doc.internal.pageSize.getHeight() - 60) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+
+                // --- Summary Table ---
+                yPos = writeText(`RINGKASAN: ${assetName}`, { fontSize: 12, fontStyle: 'bold' }, yPos);
+                yPos += 2;
+                
+                const totalInvested = purchases.reduce((sum, p) => sum + p.investment, 0);
+                const totalAmount = purchases.reduce((sum, p) => sum + p.amountBought, 0);
+                const averagePrice = totalAmount > 0 ? totalInvested / totalAmount : 0;
+                const latestPrice = purchases.length > 0 ? purchases[purchases.length - 1].price : 0;
+                const portfolioValue = totalAmount * latestPrice;
+                const pnl = portfolioValue - totalInvested;
+                const pnlPercentage = totalInvested > 0 ? (pnl / totalInvested) * 100 : 0;
+
+                const summaryBody = [
+                    ['Total Investasi', format(totalInvested)],
+                    ['Harga Beli rata-rata', format(averagePrice)],
+                    [`Total ${assetName}`, totalAmount.toFixed(8)],
+                    ['Nilai Investasi', format(portfolioValue)],
+                    ['Untung/Rugi', `${format(pnl)} (${pnlPercentage.toFixed(2)}%)`],
+                ];
+                
+                doc.autoTable({
+                    startY: yPos,
+                    body: summaryBody,
+                    theme: 'grid',
+                    didParseCell: function(data) {
+                        if (data.column.index === 0) {
+                            data.cell.styles.fillColor = [22, 163, 74];
+                            data.cell.styles.textColor = [255, 255, 255];
+                            data.cell.styles.fontStyle = 'bold';
+                        }
+                    },
+                    bodyStyles: { font: 'courier' },
+                    styles: { cellPadding: 2, fontSize: 9 },
+                });
+                yPos = doc.autoTable.previous.finalY + 15;
+            }
+            
+             if (yPos > doc.internal.pageSize.getHeight() - 40) {
+                doc.addPage();
+                yPos = 20;
+            }
+
+            // --- PDF Footer ---
+            yPos = writeText("Catatan:", { fontStyle: 'bold' }, yPos);
+            const disclaimerText = "Kripto adalah aset yang sangat berisiko! Pastikan kamu telah mempelajari dan melakukan pertimbangkan dengan baik tentang aset kripto sebelum berinvestasi.";
+            const splitDisclaimer = doc.splitTextToSize(disclaimerText, doc.internal.pageSize.getWidth() - (leftMargin * 2));
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'italic');
+            doc.setTextColor(107, 114, 128);
+            doc.text(splitDisclaimer, leftMargin, yPos);
+            yPos += (splitDisclaimer.length * 10) + 10;
+            
+            yPos = writeText("Salam,", { fontSize: 11, fontStyle: 'normal', color: '#000000' }, yPos);
+            yPos += 15;
+            yPos = writeText("Edward C. Mangedong", { fontSize: 11, fontStyle: 'bold' }, yPos);
+
+
+            doc.save(`Laporan Portofolio - ${pageUserName}.pdf`);
+            
+            downloadPdfBtn.disabled = false;
+        }
+
+        // --- EVENT LISTENERS ---
+        startBtn.addEventListener('click', handleStart);
+        addAssetBtn.addEventListener('click', () => {
+             const assetName = newAssetNameInput.value.trim().toUpperCase();
+             if(assetName) {
+                 const currency = portfolio[selectedAsset].currency;
+                 addAsset(assetName, currency);
+                 newAssetNameInput.value = '';
+             }
+        });
+
+        assetTabsContainer.addEventListener('click', e => {
+            const assetBtn = e.target.closest('.asset-btn');
+            const deleteBtn = e.target.closest('.delete-asset-btn');
+            
+            if (deleteBtn) {
+                e.stopPropagation();
+                handleDeleteAsset(deleteBtn.dataset.assetDelete);
+            } else if (assetBtn) {
+                selectedAsset = assetBtn.dataset.asset;
+                renderAll();
+            }
+        });
+
+        assetDetailsContainer.addEventListener('submit', e => {
+            if (e.target.hasAttribute('data-asset-form')) {
+                handleAddPurchase(e);
+            }
+        });
+        
+        assetDetailsContainer.addEventListener('click', e => {
+            if (e.target.hasAttribute('data-reset-asset')) {
+                handleResetAsset(e.target.dataset.resetAsset);
+            }
+            const deletePurchaseBtn = e.target.closest('.delete-purchase-btn');
+            if (deletePurchaseBtn) {
+                const idToDelete = deletePurchaseBtn.dataset.id;
+                portfolio[selectedAsset].purchases = portfolio[selectedAsset].purchases.filter(p => p.id != idToDelete);
+                portfolio[selectedAsset].purchases.forEach((p, index) => {
+                    p.period = index + 1;
+                });
+                renderAll();
+            }
+        });
+        
+        assetDetailsContainer.addEventListener('input', e => {
+            const target = e.target;
+            if (target.hasAttribute('data-input')) {
+                const assetData = portfolio[selectedAsset];
+                formatInputValue(target, assetData.currency);
+            }
+        });
+        downloadPdfBtn.addEventListener('click', handleDownloadPDF);
+    </script>
+</body>
+</html>
